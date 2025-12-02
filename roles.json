@@ -1,0 +1,27 @@
+{
+    "ROLES_TO_CREATE": [
+        {"name": "Administracja", "color": 16711680},
+        {"name": "Dyrektor Placówki", "color": 16766720},
+        {"name": "Special Response Unit(SRU)", "color": 13998939},
+        {"name": "Ochrona (SSC)", "color": 2326528},
+        {"name": "Kontraktor", "color": 3066993},
+        {"name": "Obsługa (MT)", "color": 16744192},
+        {"name": "Orderly", "color": 16777215},
+        {"name": "Orderly Support", "color": 9807270},
+        {"name": "Pacjent", "color": 12632256},
+        {"name": "paramedyk", "color": 255},
+        {"name": "Bot", "color": 8388736}
+    ],
+    "SECTOR_ROLE_IDS": {
+        "Pacjent": 1437055978100232322,
+        "Forensic": 1437895062209036319,
+        "Max Security": 1440071740905488436,
+        "Piwnica": 1440071834161778709
+    },
+    "PUNISHMENT_ROLES": {
+        "zero": [1437130373254348851],
+        "green": [1437130372524806255, 1437130371547398185, 1437130370553217024],
+        "yellow": [1437130369525616802, 1437130368607326208, 1437130367567007754],
+        "red": [1437130366140940490, 1437130364995899536]
+    }
+}

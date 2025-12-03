@@ -131,6 +131,24 @@
                 "kara_pieniezna": 500,
                 "czas_trwania_str": null,
                 "timestamp": "2025-11-28T19:17:22.875218"
+            },
+            {
+                "id": 15840,
+                "moderator_id": 1146441691562250340,
+                "rodzaj_kary": "Forensic",
+                "powod": "kontrabanda + nie ubieranie stroju",
+                "kara_pieniezna": 1700,
+                "czas_trwania_str": null,
+                "timestamp": "2025-12-02T17:05:32.626432"
+            },
+            {
+                "id": 13437,
+                "moderator_id": 1146441691562250340,
+                "rodzaj_kary": "MS",
+                "powod": "active escape + nie ubieranie stroju",
+                "kara_pieniezna": 2200,
+                "czas_trwania_str": null,
+                "timestamp": "2025-12-02T17:10:13.451336"
             }
         ]
     },
@@ -153,7 +171,18 @@
         "balance": 1000,
         "last_collect": null,
         "last_work": null,
-        "active_temp_roles": []
+        "active_temp_roles": [],
+        "sentences": [
+            {
+                "id": 18133,
+                "moderator_id": 820328684845268992,
+                "rodzaj_kary": "MS",
+                "powod": "usi\u0142owanie Zabujstwa",
+                "kara_pieniezna": 3000,
+                "czas_trwania_str": null,
+                "timestamp": "2025-12-03T17:55:41.362245"
+            }
+        ]
     },
     "1051558424573394964": {
         "balance": 1000,

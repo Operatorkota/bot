@@ -149,6 +149,15 @@
                 "kara_pieniezna": 2200,
                 "czas_trwania_str": null,
                 "timestamp": "2025-12-02T17:10:13.451336"
+            },
+            {
+                "id": 95050,
+                "moderator_id": 767109390129692753,
+                "rodzaj_kary": "Bez zmian",
+                "powod": "Contraband",
+                "kara_pieniezna": 2500,
+                "czas_trwania_str": null,
+                "timestamp": "2025-12-04T15:29:25.743618"
             }
         ]
     },
@@ -235,6 +244,20 @@
                 "kara_pieniezna": 2000,
                 "czas_trwania_str": null,
                 "timestamp": "2025-11-26T17:21:37.443815"
+            }
+        ]
+    },
+    "1146441691562250340": {
+        "active_temp_roles": [],
+        "sentences": [
+            {
+                "id": 63421,
+                "moderator_id": 767109390129692753,
+                "rodzaj_kary": "Forensic",
+                "powod": "Contraband",
+                "kara_pieniezna": 2500,
+                "czas_trwania_str": null,
+                "timestamp": "2025-12-04T15:20:44.633068"
             }
         ]
     }

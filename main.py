@@ -40,6 +40,26 @@ def save_votes(data):
     with open(VOTES_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4)
 
+# --- ŚCIEŻKA DO PLIKU POZIOMÓW ---
+LEVELS_FILE = 'levels.json'
+
+# --- FUNKCJE ZARZĄDZANIA POZIOMAMI ---
+
+def load_levels_data():
+    """Wczytuje dane poziomów z pliku JSON."""
+    if not os.path.exists(LEVELS_FILE):
+        return {}
+    try:
+        with open(LEVELS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return {}
+
+def save_levels_data(data):
+    """Zapisuje dane poziomów do pliku JSON."""
+    with open(LEVELS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4)
+
 
 # --- ŚCIEŻKA DO PLIKU Z DANYMI UŻYTKOWNIKÓW ---
 USER_DATA_FILE = 'user_data.json'
@@ -185,6 +205,43 @@ SERVER_STRUCTURE = [
 
 # --- ŚCIEŻKA DO PLIKU RÓL ---
 ROLES_FILE = 'roles.json'
+LEADERBOARD_FILE = 'leaderboard.json'
+
+def load_leaderboard_message_id():
+    """Wczytuje ID wiadomości leaderboardu z pliku JSON."""
+    if not os.path.exists(LEADERBOARD_FILE):
+        return {}
+    try:
+        with open(LEADERBOARD_FILE, 'r') as f:
+            data = json.load(f)
+            return data
+    except json.JSONDecodeError:
+        return {}
+
+def save_leaderboard_message_id(data):
+    """Zapisuje ID wiadomości leaderboardu do pliku JSON."""
+    with open(LEADERBOARD_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
+
+def migrate_stolen_money():
+    """Migrates stolen money data from user_data.json to levels.json."""
+    print("INFO: Rozpoczynam migrację danych o skradzionych pieniądzach...")
+    user_data = load_user_data()
+    levels_data = load_levels_data()
+    
+    for user_id_str, data in user_data.items():
+        if "sentences" in data:
+            total_stolen = sum(sentence.get("kara_pieniezna", 0) for sentence in data["sentences"])
+            
+            if user_id_str not in levels_data:
+                levels_data[user_id_str] = get_level_data(int(user_id_str))
+            
+            levels_data[user_id_str]["stolen_money"] = total_stolen
+            
+    save_levels_data(levels_data)
+    print("INFO: Migracja danych o skradzionych pieniądzach zakończona.")
+
+
 
 # --- FUNKCJE ZARZĄDZANIA ROLAMI ---
 
@@ -610,10 +667,13 @@ class MyClient(discord.Client):
         intents.members = True
         intents.messages = True
         intents.message_content = True
+        intents.voice_states = True # Required for voice state tracking
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
         self.first_ready = True
         self.gemini_api_key_cycler = None
+        self.voice_time_tracker = {} # user_id: join_time
+        self.leaderboard_message_ids = load_leaderboard_message_id()
         
         # Status cycle
         self.rp_on_statuses = cycle([
@@ -638,6 +698,12 @@ class MyClient(discord.Client):
                 await check_and_update_messages(guild, self)
             print("INFO: Zakończono automatyczną weryfikację wiadomości na wszystkich serwerach.")
 
+            # Perform one-time migration for stolen money
+            if not self.leaderboard_message_ids.get("stolen_money_migrated", False):
+                migrate_stolen_money()
+                self.leaderboard_message_ids["stolen_money_migrated"] = True
+                save_leaderboard_message_id(self.leaderboard_message_ids)
+                print("INFO: Ukończono migrację danych o skradzionych pieniądzach.")
 
         # Configure Gemini AI Key Cycler
         if hasattr(config, 'GEMINI_API_KEYS') and isinstance(config.GEMINI_API_KEYS, list) and config.GEMINI_API_KEYS:
@@ -665,11 +731,153 @@ class MyClient(discord.Client):
         # Start background tasks
         self.check_expired_roles.start()
         self.change_status.start()
+        self.update_voice_time.start()
+        self.update_leaderboard.start()
         
         # Start RP poll tasks
         send_rp_poll.start(self)
         announce_rp_results.start(self)
 
+    @tasks.loop(seconds=60)
+    async def update_voice_time(self):
+        """Awards XP for time spent in voice channels."""
+        levels_data = load_levels_data()
+        now = datetime.now()
+        
+        for user_id, join_time in list(self.voice_time_tracker.items()):
+            duration = (now - join_time).total_seconds()
+            
+            user_level_data = get_level_data(user_id)
+            user_level_data["voice_time"] = user_level_data.get("voice_time", 0) + int(duration)
+            
+            xp_to_add = int(duration / 60) * XP_PER_MINUTE_VOICE
+            user_level_data["xp"] = user_level_data.get("xp", 0) + xp_to_add
+            
+            levels_data[str(user_id)] = user_level_data
+            self.voice_time_tracker[user_id] = now # Reset join time
+            
+        save_levels_data(levels_data)
+        
+    @tasks.loop(seconds=5)
+    async def update_leaderboard(self):
+        """Updates the leaderboard message."""
+        channel = self.get_channel(LEADERBOARD_CHANNEL_ID)
+        if not channel:
+            return
+
+        levels_data = load_levels_data()
+        
+        # --- Voice Leaderboard ---
+        sorted_by_voice = sorted(levels_data.items(), key=lambda item: item[1].get('voice_time', 0), reverse=True)
+        
+        voice_embed = discord.Embed(
+            title="🏆 Topka serwera - Czas na VC 🏆",
+            description="Top 10 użytkowników na serwerze pod względem czasu spędzonego na kanałach głosowych.",
+            color=discord.Color.blue()
+        )
+        
+        for i, (user_id, data) in enumerate(sorted_by_voice[:10]):
+            try:
+                user = await self.fetch_user(int(user_id))
+                voice_time_seconds = data.get("voice_time", 0)
+                voice_time_str = str(timedelta(seconds=voice_time_seconds))
+                voice_embed.add_field(
+                    name=f"{i+1}. {user.display_name}",
+                    value=f"Czas: {voice_time_str}",
+                    inline=False
+                )
+            except discord.NotFound:
+                continue
+        
+        # --- Message Leaderboard ---
+        sorted_by_messages = sorted(levels_data.items(), key=lambda item: item[1].get('message_count', 0), reverse=True)
+        
+        message_embed = discord.Embed(
+            title="🏆 Topka serwera - Wiadomości 🏆",
+            description="Top 10 użytkowników na serwerze pod względem liczby wysłanych wiadomości.",
+            color=discord.Color.green()
+        )
+        
+        for i, (user_id, data) in enumerate(sorted_by_messages[:10]):
+            try:
+                user = await self.fetch_user(int(user_id))
+                message_embed.add_field(
+                    name=f"{i+1}. {user.display_name}",
+                    value=f"Wiadomości: {data.get('message_count', 0)}",
+                    inline=False
+                )
+            except discord.NotFound:
+                continue
+        
+        # --- Stolen Money Leaderboard ---
+        sorted_by_stolen_money = sorted(levels_data.items(), key=lambda item: item[1].get('stolen_money', 0), reverse=True)
+        
+        stolen_money_embed = discord.Embed(
+            title="🏆 Topka serwera - Zajebane Pieniądze 🏆",
+            description="Top 10 użytkowników, którym najwięcej zabrano pieniędzy przez `/sentenced`.",
+            color=discord.Color.red()
+        )
+        
+        for i, (user_id, data) in enumerate(sorted_by_stolen_money[:10]):
+            try:
+                user = await self.fetch_user(int(user_id))
+                stolen_money_embed.add_field(
+                    name=f"{i+1}. {user.display_name}",
+                    value=f"Zabrano: {data.get('stolen_money', 0):,} PLN",
+                    inline=False
+                )
+            except discord.NotFound:
+                continue
+
+        try:
+            # Update voice leaderboard
+            voice_message_id = self.leaderboard_message_ids.get("voice_leaderboard_message_id")
+            if voice_message_id:
+                message = await channel.fetch_message(voice_message_id)
+                await message.edit(embed=voice_embed)
+            else:
+                message = await channel.send(embed=voice_embed)
+                self.leaderboard_message_ids["voice_leaderboard_message_id"] = message.id
+                save_leaderboard_message_id(self.leaderboard_message_ids)
+
+            # Update message leaderboard
+            message_message_id = self.leaderboard_message_ids.get("message_leaderboard_message_id")
+            if message_message_id:
+                message = await channel.fetch_message(message_message_id)
+                await message.edit(embed=message_embed)
+            else:
+                message = await channel.send(embed=message_embed)
+                self.leaderboard_message_ids["message_leaderboard_message_id"] = message.id
+                save_leaderboard_message_id(self.leaderboard_message_ids)
+
+            # Update stolen money leaderboard
+            stolen_money_message_id = self.leaderboard_message_ids.get("stolen_money_leaderboard_message_id")
+            if stolen_money_message_id:
+                message = await channel.fetch_message(stolen_money_message_id)
+                await message.edit(embed=stolen_money_embed)
+            else:
+                message = await channel.send(embed=stolen_money_embed)
+                self.leaderboard_message_ids["stolen_money_leaderboard_message_id"] = message.id
+                save_leaderboard_message_id(self.leaderboard_message_ids)
+
+        except discord.NotFound as e:
+            if e.response.status == 404:
+                # Handle case where message was deleted
+                if "voice_leaderboard_message_id" in self.leaderboard_message_ids and str(self.leaderboard_message_ids["voice_leaderboard_message_id"]) in e.response.url:
+                    message = await channel.send(embed=voice_embed)
+                    self.leaderboard_message_ids["voice_leaderboard_message_id"] = message.id
+                    save_leaderboard_message_id(self.leaderboard_message_ids)
+                elif "message_leaderboard_message_id" in self.leaderboard_message_ids and str(self.leaderboard_message_ids["message_leaderboard_message_id"]) in e.response.url:
+                    message = await channel.send(embed=message_embed)
+                    self.leaderboard_message_ids["message_leaderboard_message_id"] = message.id
+                    save_leaderboard_message_id(self.leaderboard_message_ids)
+                elif "stolen_money_leaderboard_message_id" in self.leaderboard_message_ids and str(self.leaderboard_message_ids["stolen_money_leaderboard_message_id"]) in e.response.url:
+                    message = await channel.send(embed=stolen_money_embed)
+                    self.leaderboard_message_ids["stolen_money_leaderboard_message_id"] = message.id
+                    save_leaderboard_message_id(self.leaderboard_message_ids)
+        except discord.Forbidden:
+            print(f"BŁĄD: Brak uprawnień do wysyłania/edycji wiadomości na kanale leaderboard.")
+    
     @tasks.loop(seconds=15)
     async def change_status(self):
         status_text = "..." # Default status
@@ -778,10 +986,29 @@ class MyClient(discord.Client):
         print("INFO: Zakończono sprawdzanie wygasłych ról tymczasowych.")
 
     async def on_message(self, message: discord.Message):
-        # Ignore messages from itself
-        if message.author == self.user:
+        # Ignore messages from itself or other bots
+        if message.author.bot:
             return
 
+        # --- Leveling System ---
+        user_id = message.author.id
+        levels_data = load_levels_data()
+        user_level_data = get_level_data(user_id)
+        
+        user_level_data["message_count"] = user_level_data.get("message_count", 0) + 1
+        user_level_data["xp"] = user_level_data.get("xp", 0) + XP_PER_MESSAGE
+        
+        # Check for level up
+        new_level = calculate_level(user_level_data["xp"])
+        if new_level > user_level_data.get("level", 0):
+            user_level_data["level"] = new_level
+            # You can add a level up message here if you want
+            # await message.channel.send(f"Congratulations {message.author.mention}, you have reached level {new_level}!")
+
+        levels_data[str(user_id)] = user_level_data
+        save_levels_data(levels_data)
+        # --- End of Leveling System ---
+        
         # Check for bumps from DISBOARD (ID: 302050872383242240)
         if message.author.id == 302050872383242240 and message.embeds:
             for embed in message.embeds:
@@ -1052,7 +1279,61 @@ async def set_persona_error(interaction: discord.Interaction, error: app_command
 
 # --- NOWE KOMENDY ---
 
+# --- System Poziomów ---
+LEVEL_UP_XP = 100
+XP_PER_MESSAGE = 1
+XP_PER_MINUTE_VOICE = 2
+LEADERBOARD_CHANNEL_ID = 1446533102108147814
 
+def get_level_data(user_id: int):
+    """Pobiera dane poziomów użytkownika, inicjalizując je, jeśli nie istnieją."""
+    levels_data = load_levels_data()
+    user_id_str = str(user_id)
+    
+    if user_id_str not in levels_data:
+        levels_data[user_id_str] = {
+            "xp": 0,
+            "level": 0,
+            "message_count": 0,
+            "voice_time": 0, # in seconds
+        }
+        save_levels_data(levels_data)
+            
+    return levels_data[user_id_str]
+
+def calculate_level(xp):
+    """Oblicza poziom na podstawie XP."""
+    return int(xp / LEVEL_UP_XP)
+
+voice_time_tracker = {} # user_id: join_time
+
+@client.tree.command(name="profile", description="Wyświetla profil z poziomem i statystykami.")
+@app_commands.describe(uzytkownik="Użytkownik, którego profil chcesz zobaczyć (opcjonalnie).")
+async def profile(interaction: discord.Interaction, uzytkownik: discord.Member = None):
+    target_user = uzytkownik or interaction.user
+    
+    level_data = get_level_data(target_user.id)
+    
+    xp = level_data.get("xp", 0)
+    level = calculate_level(xp)
+    xp_for_next_level = (level + 1) * LEVEL_UP_XP
+    
+    embed = discord.Embed(
+        title=f"Profil {target_user.display_name}",
+        color=discord.Color.blue()
+    )
+    embed.set_thumbnail(url=target_user.avatar.url if target_user.avatar else target_user.default_avatar.url)
+    
+    embed.add_field(name="Poziom", value=level, inline=True)
+    embed.add_field(name="XP", value=f"{xp}/{xp_for_next_level}", inline=True)
+    
+    embed.add_field(name="Wiadomości", value=level_data.get("message_count", 0), inline=False)
+    
+    voice_time_seconds = level_data.get("voice_time", 0)
+    voice_time_str = str(timedelta(seconds=voice_time_seconds))
+    embed.add_field(name="Czas w rozmowach", value=voice_time_str, inline=False)
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 
@@ -1127,6 +1408,15 @@ async def sentenced(interaction: discord.Interaction, uzytkownik: discord.Member
     }
     user_data.setdefault('sentences', []).append(new_sentence)
     update_user_data(uzytkownik.id, user_data)
+
+    # Update stolen money in levels data
+    if kara_pieniezna > 0:
+        levels_data = load_levels_data()
+        user_level_data = get_level_data(uzytkownik.id)
+        user_level_data["stolen_money"] = user_level_data.get("stolen_money", 0) + kara_pieniezna
+        levels_data[str(uzytkownik.id)] = user_level_data
+        save_levels_data(levels_data)
+
 
 
     embed = discord.Embed(
@@ -1743,6 +2033,35 @@ async def on_member_join(member: discord.Member):
         embed.set_footer(text=f"Data dołączenia: {member.joined_at.strftime('%Y-%m-%d %H:%M:%S')}")
         await log_channel.send(embed=embed)
     get_user_data(member.id) # Inicjalizuj dane dla nowego użytkownika
+
+@client.event
+async def on_voice_state_update(member, before, after):
+    """Tracks user voice channel time."""
+    if member.bot:
+        return
+
+    user_id = member.id
+    
+    # User joins a voice channel
+    if not before.channel and after.channel:
+        client.voice_time_tracker[user_id] = datetime.now()
+        
+    # User leaves a voice channel
+    elif before.channel and not after.channel:
+        if user_id in client.voice_time_tracker:
+            join_time = client.voice_time_tracker.pop(user_id)
+            duration = (datetime.now() - join_time).total_seconds()
+            
+            levels_data = load_levels_data()
+            user_level_data = get_level_data(user_id)
+            
+            user_level_data["voice_time"] = user_level_data.get("voice_time", 0) + int(duration)
+            
+            xp_to_add = int(duration / 60) * XP_PER_MINUTE_VOICE
+            user_level_data["xp"] = user_level_data.get("xp", 0) + xp_to_add
+            
+            levels_data[str(user_id)] = user_level_data
+            save_levels_data(levels_data)
 
 @client.event
 async def on_member_remove(member: discord.Member):

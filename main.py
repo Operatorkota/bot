@@ -685,18 +685,8 @@ class MyClient(discord.Client):
 
     async def setup_hooks(self) -> None:
         # Register the persistent view for the RP poll
+        # This ensures the view works even after the bot restarts.
         self.add_view(RoleplayPollView())
-
-        # Load all cogs from the 'cogs' directory
-        print("INFO: Rozpoczynam ładowanie modułów (cogs)...")
-        for filename in os.listdir('./cogs'):
-            if filename.endswith('.py'):
-                try:
-                    await self.load_extension(f'cogs.{filename[:-3]}')
-                    print(f"INFO: Pomyślnie załadowano moduł: {filename}")
-                except Exception as e:
-                    print(f"BŁĄD: Nie udało się załadować modułu {filename}: {e}")
-        print("INFO: Zakończono ładowanie modułów.")
 
     async def on_ready(self):
         await self.tree.sync()
@@ -704,16 +694,24 @@ class MyClient(discord.Client):
 
         if self.first_ready:
             self.first_ready = False
+
+            # Load all cogs from the 'cogs' directory
+            print("INFO: Rozpoczynam ładowanie modułów (cogs)...")
+            # Create an async task to load extensions
+            async def load_cogs():
+                for filename in os.listdir('./cogs'):
+                    if filename.endswith('.py'):
+                        try:
+                            await self.load_extension(f'cogs.{filename[:-3]}')
+                            print(f"INFO: Pomyślnie załadowano moduł: {filename}")
+                        except Exception as e:
+                            print(f"BŁĄD: Nie udało się załadować modułu {filename}: {e}")
+            await load_cogs()
+            print("INFO: Zakończono ładowanie modułów.")
+
             for guild in self.guilds:
                 await check_and_update_messages(guild, self)
             print("INFO: Zakończono automatyczną weryfikację wiadomości na wszystkich serwerach.")
-
-            # Perform one-time migration for stolen money
-            if not self.leaderboard_message_ids.get("stolen_money_migrated", False):
-                migrate_stolen_money()
-                self.leaderboard_message_ids["stolen_money_migrated"] = True
-                save_leaderboard_message_id(self.leaderboard_message_ids)
-                print("INFO: Ukończono migrację danych o skradzionych pieniądzach.")
 
         # Configure Gemini AI Key Cycler
         if hasattr(config, 'GEMINI_API_KEYS') and isinstance(config.GEMINI_API_KEYS, list) and config.GEMINI_API_KEYS:

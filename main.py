@@ -685,8 +685,18 @@ class MyClient(discord.Client):
 
     async def setup_hooks(self) -> None:
         # Register the persistent view for the RP poll
-        # This ensures the view works even after the bot restarts.
         self.add_view(RoleplayPollView())
+
+        # Load all cogs from the 'cogs' directory
+        print("INFO: Rozpoczynam ładowanie modułów (cogs)...")
+        for filename in os.listdir('./cogs'):
+            if filename.endswith('.py'):
+                try:
+                    await self.load_extension(f'cogs.{filename[:-3]}')
+                    print(f"INFO: Pomyślnie załadowano moduł: {filename}")
+                except Exception as e:
+                    print(f"BŁĄD: Nie udało się załadować modułu {filename}: {e}")
+        print("INFO: Zakończono ładowanie modułów.")
 
     async def on_ready(self):
         await self.tree.sync()

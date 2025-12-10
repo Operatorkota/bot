@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
 
-const API_BASE_URL = 'http://frog03.mikr.us:20851/api'; // Use the provided VPS port
+const API_BASE_URL = '/api'; // Use relative path for flexibility
 
 const Home = () => (
   <div className="container mt-5">

@@ -660,7 +660,7 @@ async def announce_rp_results(client: discord.Client):
     save_votes({"votes": {}, "voted_users": []})
 
 
-class MyClient(discord.Client):
+class MyClient(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.guilds = True
@@ -668,8 +668,11 @@ class MyClient(discord.Client):
         intents.messages = True
         intents.message_content = True
         intents.voice_states = True # Required for voice state tracking
-        super().__init__(intents=intents)
-        self.tree = app_commands.CommandTree(self)
+        
+        # commands.Bot requires a command_prefix, even if you only use slash commands.
+        super().__init__(command_prefix="!", intents=intents)
+        
+        # self.tree is now managed automatically by commands.Bot
         self.first_ready = True
         self.gemini_api_key_cycler = None
 

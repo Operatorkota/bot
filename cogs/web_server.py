@@ -3,9 +3,10 @@ import os
 import json # Added for loading JSON files
 from discord.ext import commands, tasks
 from aiohttp import web
+import aiohttp_cors # Import cors library
 
 # --- Web Server Configuration ---
-WEB_SERVER_HOST = "192.168.8.151"
+WEB_SERVER_HOST = "0.0.0.0"
 WEB_SERVER_PORT = 20851
 
 # --- File Paths (Copied from main.py for web server's direct access) ---
@@ -32,6 +33,21 @@ def load_user_data():
             return json.load(f)
     except json.JSONDecodeError:
         return {}
+
+# --- Logging Middleware ---
+@web.middleware
+async def logging_middleware(request, handler):
+    """Middleware to log every incoming request."""
+    print(f"INFO: [WEB] Otrzymano żądanie: {request.method} {request.path} od {request.remote}")
+    print(f"INFO: [WEB] Nagłówki: {request.headers}")
+    try:
+        response = await handler(request)
+        print(f"INFO: [WEB] Odpowiedź: Status {response.status}")
+        return response
+    except Exception as e:
+        print(f"BŁĄD: [WEB] Błąd podczas obsługi żądania {request.path}: {e}")
+        # Re-raise the exception to be handled by aiohttp's default error handling
+        raise
 
 class WebServerCog(commands.Cog):
     def __init__(self, bot):
@@ -70,13 +86,28 @@ class WebServerCog(commands.Cog):
 
     @tasks.loop(count=1)
     async def web_server_task(self):
-        app = web.Application()
+        # Add the logging middleware to the app
+        app = web.Application(middlewares=[logging_middleware])
         static_path = os.path.abspath('frontend/dist')
 
+        # Setup CORS
+        cors = aiohttp_cors.setup(app, defaults={
+            "*": aiohttp_cors.ResourceOptions(
+                    allow_credentials=True,
+                    expose_headers="*",
+                    allow_headers="*",
+                )
+        })
+
         # API routes should be specific and come first
-        app.router.add_get('/api/status', self.api_status_handler)
-        app.router.add_get('/api/patient_cards', self.api_patient_cards_handler)
-        app.router.add_get('/api/user_data', self.api_user_data_handler)
+        api_status_route = app.router.add_get('/api/status', self.api_status_handler)
+        api_patient_cards_route = app.router.add_get('/api/patient_cards', self.api_patient_cards_handler)
+        api_user_data_route = app.router.add_get('/api/user_data', self.api_user_data_handler)
+
+        # Add CORS to API routes
+        cors.add(api_status_route)
+        cors.add(api_patient_cards_route)
+        cors.add(api_user_data_route)
 
         # Static file serving for assets (js, css, images, etc.)
         if os.path.exists(os.path.join(static_path, 'assets')):
@@ -85,11 +116,14 @@ class WebServerCog(commands.Cog):
         # Serve specific files from the root of the dist folder if they exist
         for filename in ['vite.svg', 'favicon.ico']: # Add other root files here
              if os.path.exists(os.path.join(static_path, filename)):
-                app.router.add_get(f'/{filename}', lambda req, f=filename: web.FileResponse(os.path.join(static_path, f)))
+                # This lambda captures the filename for the closure
+                file_handler = lambda req, f=filename: web.FileResponse(os.path.join(static_path, f))
+                app.router.add_get(f'/{filename}', file_handler)
 
         # The catch-all handler for SPA routing.
         # This serves index.html for any path that wasn't matched above.
-        app.router.add_get('/{path:.*}', self.handle_frontend)
+        frontend_route = app.router.add_get('/{path:.*}', self.handle_frontend)
+        cors.add(frontend_route) # Also add CORS to the frontend route
 
         runner = web.AppRunner(app)
         await runner.setup()

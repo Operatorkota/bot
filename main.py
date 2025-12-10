@@ -2,7 +2,7 @@
 
 import discord
 from discord import app_commands
-from discord.ext import tasks # Import tasks for background loops
+from discord.ext import tasks, commands # Import tasks for background loops
 import config
 import json
 import os

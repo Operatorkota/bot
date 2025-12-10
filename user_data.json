@@ -158,6 +158,33 @@
                 "kara_pieniezna": 2500,
                 "czas_trwania_str": null,
                 "timestamp": "2025-12-04T15:29:25.743618"
+            },
+            {
+                "id": 70146,
+                "moderator_id": 1146441691562250340,
+                "rodzaj_kary": "Bez zmian",
+                "powod": "property damage",
+                "kara_pieniezna": 4000,
+                "czas_trwania_str": null,
+                "timestamp": "2025-12-06T20:50:23.616753"
+            },
+            {
+                "id": 62155,
+                "moderator_id": 1146441691562250340,
+                "rodzaj_kary": "Padded",
+                "powod": "raidowanie z broniami",
+                "kara_pieniezna": 4200,
+                "czas_trwania_str": null,
+                "timestamp": "2025-12-08T17:07:04.879050"
+            },
+            {
+                "id": 97818,
+                "moderator_id": 767109390129692753,
+                "rodzaj_kary": "Bez zmian",
+                "powod": "Propety Damage",
+                "kara_pieniezna": 4000,
+                "czas_trwania_str": null,
+                "timestamp": "2025-12-08T17:49:28.584276"
             }
         ]
     },
@@ -258,6 +285,42 @@
                 "kara_pieniezna": 2500,
                 "czas_trwania_str": null,
                 "timestamp": "2025-12-04T15:20:44.633068"
+            }
+        ]
+    },
+    "1131901770419949578": {
+        "active_temp_roles": [],
+        "sentences": []
+    },
+    "1324354259818643487": {
+        "active_temp_roles": [],
+        "sentences": []
+    },
+    "767109390129692753": {
+        "active_temp_roles": [],
+        "sentences": [
+            {
+                "id": 51505,
+                "moderator_id": 1146441691562250340,
+                "rodzaj_kary": "Forensic",
+                "powod": "kontrabanda + nie ubranie stroju",
+                "kara_pieniezna": 1700,
+                "czas_trwania_str": null,
+                "timestamp": "2025-12-06T15:58:45.808868"
+            }
+        ]
+    },
+    "1175540082824982620": {
+        "active_temp_roles": [],
+        "sentences": [
+            {
+                "id": 58696,
+                "moderator_id": 1146441691562250340,
+                "rodzaj_kary": "Forensic",
+                "powod": "kontrabanda",
+                "kara_pieniezna": 1500,
+                "czas_trwania_str": null,
+                "timestamp": "2025-12-06T17:02:53.662618"
             }
         ]
     }

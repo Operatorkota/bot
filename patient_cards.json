@@ -28,18 +28,18 @@
         "last_updated": "2025-11-17T18:15:17.709278"
     },
     "1146441691562250340": {
-        "imie_nazwisko": "Jimmy Kowalski",
-        "wiek": 22,
-        "pochodzenie": "Polska",
-        "diagnoza": "Paranoia",
-        "recepta": "1-Anty Depresant | 1-Anty Psychologiczne",
-        "zalecenia": ",,Do pacjenta prosz\u0119 nie krzycze\u0107 oraz go nie bi\u0107",
-        "imiona_rodzicow": "Mateusz | Klaudia",
-        "rok_przybycia": 2013,
-        "pokoj": "2 | S:1",
+        "imie_nazwisko": "Mateusz Wajcha",
+        "wiek": 21,
+        "pochodzenie": "Francja",
+        "diagnoza": "BPD",
+        "recepta": "2-Anty Depresant | 2-Anty Psychologiczne",
+        "zalecenia": "[\u017cadne]",
+        "imiona_rodzicow": "Micha\u0142 | Patrycja",
+        "rok_przybycia": 2020,
+        "pokoj": "8 | S:8",
         "discord_id": 1146441691562250340,
         "author_id": 1051167022408536094,
-        "last_updated": "2025-11-17T18:41:18.103704"
+        "last_updated": "2025-12-05T20:47:34.532371"
     },
     "922736512506925107": {
         "imie_nazwisko": "John Digger",
@@ -96,5 +96,33 @@
         "discord_id": 1423975814277496895,
         "author_id": 1051167022408536094,
         "last_updated": "2025-11-26T17:50:03.675699"
+    },
+    "1002209076933034005": {
+        "imie_nazwisko": "Jack White",
+        "wiek": 22,
+        "pochodzenie": "Meksyk",
+        "diagnoza": "Schizofremia",
+        "recepta": "2-Anty Depresanty | 3-Anty Psychologiczne",
+        "zalecenia": "[\u017cadne]",
+        "imiona_rodzicow": "James | [mama nie znana]",
+        "rok_przybycia": 2020,
+        "pokoj": "6 | S:1",
+        "discord_id": 1002209076933034005,
+        "author_id": 1051167022408536094,
+        "last_updated": "2025-12-05T20:31:26.493323"
+    },
+    "757280923757707355": {
+        "imie_nazwisko": "Jack Black",
+        "wiek": 21,
+        "pochodzenie": "Meksyk",
+        "diagnoza": "Paranoia",
+        "recepta": "2-Anty Depresant | 3-Anty Psychologiczne",
+        "zalecenia": "[\u017cadne]",
+        "imiona_rodzicow": "Brak [Sierota]",
+        "rok_przybycia": 2020,
+        "pokoj": "7 | S:1",
+        "discord_id": 757280923757707355,
+        "author_id": 1051167022408536094,
+        "last_updated": "2025-12-05T20:34:05.250872"
     }
 }

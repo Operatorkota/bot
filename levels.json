@@ -1,23 +1,23 @@
 {
     "877210657953566751": {
-        "xp": 6,
+        "xp": 59,
         "level": 0,
-        "message_count": 2,
+        "message_count": 20,
         "voice_time": 251,
-        "stolen_money": 28599
+        "stolen_money": 40799
     },
     "1423975814277496895": {
-        "xp": 2,
+        "xp": 20,
         "level": 0,
-        "message_count": 2,
-        "voice_time": 0,
+        "message_count": 11,
+        "voice_time": 9,
         "stolen_money": 3000
     },
     "820328684845268992": {
-        "xp": 1,
+        "xp": 14,
         "level": 0,
-        "message_count": 1,
-        "voice_time": 0,
+        "message_count": 8,
+        "voice_time": 81,
         "stolen_money": 0
     },
     "572906387382861835": {
@@ -28,17 +28,85 @@
         "stolen_money": 0
     },
     "1051167022408536094": {
-        "xp": 0,
+        "xp": 63,
         "level": 0,
         "message_count": 0,
-        "voice_time": 0,
+        "voice_time": 3912,
         "stolen_money": 2000
     },
     "1146441691562250340": {
-        "xp": 0,
+        "xp": 125,
+        "level": 1,
+        "message_count": 10,
+        "voice_time": 6291,
+        "stolen_money": 2500
+    },
+    "1080609032051630080": {
+        "xp": 4,
+        "level": 0,
+        "message_count": 2,
+        "voice_time": 0
+    },
+    "1175540082824982620": {
+        "xp": 64,
         "level": 0,
         "message_count": 0,
-        "voice_time": 0,
-        "stolen_money": 2500
+        "voice_time": 3928,
+        "stolen_money": 1500
+    },
+    "1324764506773131264": {
+        "xp": 56,
+        "level": 0,
+        "message_count": 4,
+        "voice_time": 2826
+    },
+    "767109390129692753": {
+        "xp": 46,
+        "level": 0,
+        "message_count": 0,
+        "voice_time": 3179,
+        "stolen_money": 1700
+    },
+    "1002209076933034005": {
+        "xp": 14,
+        "level": 0,
+        "message_count": 5,
+        "voice_time": 0
+    },
+    "1311826001080090685": {
+        "xp": 2,
+        "level": 0,
+        "message_count": 0,
+        "voice_time": 171
+    },
+    "1282434642292641891": {
+        "xp": 51,
+        "level": 0,
+        "message_count": 9,
+        "voice_time": 2607
+    },
+    "1051558424573394964": {
+        "xp": 24,
+        "level": 0,
+        "message_count": 0,
+        "voice_time": 1270
+    },
+    "1364157928399048704": {
+        "xp": 1,
+        "level": 0,
+        "message_count": 1,
+        "voice_time": 0
+    },
+    "940161134428827678": {
+        "xp": 7,
+        "level": 0,
+        "message_count": 0,
+        "voice_time": 0
+    },
+    "980512810775748639": {
+        "xp": 1,
+        "level": 0,
+        "message_count": 0,
+        "voice_time": 0
     }
 }

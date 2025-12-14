@@ -6,7 +6,7 @@ from aiohttp import web
 import aiohttp_cors # Import cors library
 
 # --- Web Server Configuration ---
-WEB_SERVER_HOST = "0.0.0.0"
+WEB_SERVER_HOST = "::"
 WEB_SERVER_PORT = 20851
 
 # --- File Paths (Copied from main.py for web server's direct access) ---

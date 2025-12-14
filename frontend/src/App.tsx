@@ -1,14 +1,79 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link } from 'react-router-dom';
+import EmployeeCard from './EmployeeCard';
 
-const API_BASE_URL = '/api'; // Use relative path for flexibility
+// During local development, the frontend (e.g., on Vite's port 5173) and the backend (on port 20851)
+// are on different origins. We must use the full, absolute URL to avoid CORS/network errors.
+// In a production environment, you would typically use a reverse proxy to serve both
+// from the same domain, allowing you to switch back to a relative path like '/api'.
+const API_BASE_URL = 'http://[2a01:4f9:4a:28ca::851]:20851/api';
 
-const Home = () => (
-  <div className="container mt-5">
-    <h1>Witaj na stronie bota Discord!</h1>
-    <p>Tutaj znajdziesz informacje o bocie i jego funkcjach.</p>
-  </div>
-);
+const Home = () => {
+  const [botStatus, setBotStatus] = useState<any>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBotStatus = async () => {
+      try {
+        // We use a separate fetch here for the status endpoint
+        const response = await fetch('http://[2a01:4f9:4a:28ca::851]:20851/api/status');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setBotStatus(data);
+      } catch (e: any) {
+        setStatusError(e.message);
+      }
+    };
+
+    fetchBotStatus();
+    // Refresh status every 30 seconds
+    const intervalId = setInterval(fetchBotStatus, 30000); 
+
+    return () => clearInterval(intervalId); // Cleanup interval on component unmount
+  }, []);
+
+  return (
+    <div className="container mt-5">
+      <h1>Witaj na stronie bota Discord!</h1>
+      <p>Tutaj znajdziesz informacje o bocie i jego funkcjach.</p>
+      
+      <div className="card mt-4">
+        <div className="card-header">
+          Status Bota
+        </div>
+        <div className="card-body">
+          {statusError && (
+            <div className="alert alert-danger">
+              <strong>Błąd połączenia z API:</strong> {statusError}
+              <br />
+              <small>Upewnij się, że bot z serwerem WWW jest uruchomiony.</small>
+            </div>
+          )}
+          {botStatus ? (
+            <ul className="list-group list-group-flush">
+              <li className="list-group-item d-flex justify-content-between align-items-center">
+                Status
+                <span className="badge bg-success rounded-pill">Online</span>
+              </li>
+              <li className="list-group-item d-flex justify-content-between align-items-center">
+                Opóźnienie (Latency)
+                <span className="badge bg-primary rounded-pill">{botStatus.latency}</span>
+              </li>
+              <li className="list-group-item d-flex justify-content-between align-items-center">
+                Liczba serwerów
+                <span className="badge bg-primary rounded-pill">{botStatus.guild_count}</span>
+              </li>
+            </ul>
+          ) : (
+            !statusError && <p>Pobieranie statusu...</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Dashboard = () => {
   const [patientCards, setPatientCards] = useState<any>({});
@@ -149,6 +214,9 @@ function App() {
               <li className="nav-item">
                 <Link className="nav-link" to="/commands">Komendy</Link>
               </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/karta-pracownika">Karta Pracownika</Link>
+              </li>
             </ul>
           </div>
         </div>
@@ -158,6 +226,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/commands" element={<Commands />} />
+        <Route path="/karta-pracownika" element={<EmployeeCard />} />
       </Routes>
     </Router>
   );

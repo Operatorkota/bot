@@ -47,6 +47,17 @@ def get_user_data(user_id: str):
         return data[user_id]
     raise HTTPException(status_code=404, detail="User data not found")
 
+@app.get("/api/employee_cards")
+def get_all_employee_cards():
+    return load_data('../employee_cards.json')
+
+@app.get("/api/employee_cards/{user_id}")
+def get_employee_card(user_id: str):
+    data = load_data('../employee_cards.json')
+    if user_id in data:
+        return data[user_id]
+    raise HTTPException(status_code=404, detail="Employee card not found")
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to the Discord Bot API"}

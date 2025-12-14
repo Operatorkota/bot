@@ -369,6 +369,28 @@ W zależności od zachowania, pacjent może otrzymać jeden z poniższych status
 Wszystkie oficjalne kary, zwłaszcza te wpływające na status pacjenta lub jego finanse, **muszą być** zarejestrowane przy użyciu komendy `/sentenced`. Zapewnia to transparentność i pozwala na prowadzenie oficjalnego rejestru.
 """
 
+PROTOCOL_PART_3_DESCRIPTION = """
+### **Protokół Ubiór**
+
+**Co trzeba:**
+- Noszenia identyfikatora
+- Noszenia czystych i schludnych ubrań
+- Noszenia pełnych butów
+
+**Co można:**
+- Noszenia biżuterii
+- Noszenia zegarka
+- Noszenia okularów przeciwsłonecznych
+
+**Czego nie wolno:**
+- Noszenia ubrań z obraźliwymi napisami
+- Noszenia zbyt krótkich spodenek/spódniczek
+- Noszenia ubrań z symbolami politycznymi
+- Noszenia maczet, noży
+- Noszenia non-RP rzeczy
+- Noszenia rzeczy wojskowych itp.
+"""
+
 
 
 # Treść regulaminu RP
@@ -411,6 +433,7 @@ async def check_and_update_messages(guild: discord.Guild, client: discord.Client
         {"key": "regulamin", "title": RULES_TITLE, "desc": RULES_DESCRIPTION, "color": discord.Color.from_rgb(66, 135, 245)},
         {"key": "protokół_1", "title": f"{PROTOCOL_TITLE} (Część 1)", "desc": PROTOCOL_PART_1_DESCRIPTION, "color": discord.Color.from_rgb(245, 66, 66)},
         {"key": "protokół_2", "title": f"{PROTOCOL_TITLE} (Część 2)", "desc": PROTOCOL_PART_2_DESCRIPTION, "color": discord.Color.from_rgb(245, 66, 66)},
+        {"key": "protokół_3", "title": f"{PROTOCOL_TITLE} (Część 3 - Ubiór)", "desc": PROTOCOL_PART_3_DESCRIPTION, "color": discord.Color.from_rgb(245, 66, 66)},
         {"key": "regulamin-rp", "title": RP_RULES_TITLE, "desc": RP_RULES_DESCRIPTION, "color": discord.Color.from_rgb(66, 245, 100)},
     ]
 

@@ -11,34 +11,9 @@ import random
 import unicodedata
 import re
 from itertools import cycle
+import requests # New import
 import google.generativeai as genai
 import asyncio # New import
-from zoneinfo import ZoneInfo # New import
-
-
-
-# --- ŚCIEŻKA DO PLIKU GŁOSOWANIA ---
-VOTES_FILE = 'votes.json'
-
-# --- FUNKCJE ZARZĄDZANIA GŁOSAMI ---
-
-def load_votes():
-    """Wczytuje dane głosowania z pliku JSON."""
-    if not os.path.exists(VOTES_FILE):
-        return {"votes": {}, "voted_users": []}
-    try:
-        with open(VOTES_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
-            if not content:
-                return {"votes": {}, "voted_users": []}
-            return json.loads(content)
-    except (json.JSONDecodeError, FileNotFoundError):
-        return {"votes": {}, "voted_users": []}
-
-def save_votes(data):
-    """Zapisuje dane głosowania do pliku JSON."""
-    with open(VOTES_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=4)
 
 # --- ŚCIEŻKA DO PLIKU POZIOMÓW ---
 LEVELS_FILE = 'levels.json'
@@ -97,6 +72,9 @@ def save_user_data(data):
 # --- ŚCIEŻKA DO PLIKU KART PACJENTÓW ---
 PATIENT_CARDS_FILE = 'patient_cards.json'
 
+# --- ŚCIEŻKA DO PLIKU KART PRACOWNIKÓW ---
+EMPLOYEE_CARDS_FILE = 'employee_cards.json'
+
 # --- FUNKCJE ZARZĄDZANIA KARTAMI PACJENTÓW ---
 
 def load_patient_cards():
@@ -112,6 +90,23 @@ def load_patient_cards():
 def save_patient_cards(data):
     """Zapisuje dane kart pacjentów do pliku JSON."""
     with open(PATIENT_CARDS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4)
+
+# --- FUNKCJE ZARZĄDZANIA KARTAMI PRACOWNIKÓW ---
+
+def load_employee_cards():
+    """Wczytuje dane kart pracowników z pliku JSON."""
+    if not os.path.exists(EMPLOYEE_CARDS_FILE):
+        return {}
+    try:
+        with open(EMPLOYEE_CARDS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except json.JSONDecodeError:
+        return {}
+
+def save_employee_cards(data):
+    """Zapisuje dane kart pracowników do pliku JSON."""
+    with open(EMPLOYEE_CARDS_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4)
 
 # --- ŚCIEŻKA DO PLIKU USTAWIEŃ AI ---
@@ -153,6 +148,42 @@ def parse_duration(duration_str: str) -> timedelta | None:
         else:
             return None # Invalid unit
     except (ValueError, IndexError):
+        return None
+
+async def get_roblox_avatar_url(username: str) -> str | None:
+    """
+    Pobiera URL awatara użytkownika Roblox na podstawie jego nazwy użytkownika.
+    """
+    try:
+        # Krok 1: Pobierz User ID na podstawie nazwy użytkownika
+        user_id_url = f"https://api.roblox.com/users/get-by-username?username={username}"
+        user_id_response = requests.get(user_id_url)
+        user_id_response.raise_for_status() # Rzuć wyjątek dla błędów HTTP
+        user_data = user_id_response.json()
+
+        if not user_data or "Id" not in user_data:
+            print(f"BŁĄD: Nie znaleziono użytkownika Roblox o nazwie '{username}'.")
+            return None
+        
+        roblox_user_id = user_data["Id"]
+
+        # Krok 2: Pobierz URL awatara na podstawie User ID
+        avatar_url = f"https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds={roblox_user_id}&size=420x420&format=Png&isCircular=false"
+        avatar_response = requests.get(avatar_url)
+        avatar_response.raise_for_status() # Rzuć wyjątek dla błędów HTTP
+        avatar_data = avatar_response.json()
+
+        if avatar_data and avatar_data["data"]:
+            return avatar_data["data"][0]["imageUrl"]
+        else:
+            print(f"BŁĄD: Nie udało się pobrać awatara dla użytkownika Roblox ID '{roblox_user_id}'.")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f"BŁĄD: Błąd podczas komunikacji z API Roblox: {e}")
+        return None
+    except Exception as e:
+        print(f"BŁĄD: Nieoczekiwany błąd w get_roblox_avatar_url: {e}")
         return None
 
 # --- KOMENDY MODERACYJNE ---
@@ -563,126 +594,6 @@ async def rp_status_off(interaction: discord.Interaction):
     except Exception as e:
         await interaction.followup.send(f"❌ Wystąpił błąd podczas ustawiania statusu RP: {e}", ephemeral=True)
 
-
-# --- Widok ankiety Roleplay ---
-class RoleplayPollView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    async def handle_vote(self, interaction: discord.Interaction, option: str):
-        await interaction.response.defer(ephemeral=True)
-        votes_data = load_votes()
-
-        if interaction.user.id in votes_data.get("voted_users", []):
-            await interaction.followup.send("Już zagłosowałeś/aś w tej ankiecie.", ephemeral=True)
-            return
-
-        votes_data.setdefault("votes", {}).setdefault(option, 0)
-        votes_data["votes"][option] += 1
-        votes_data.setdefault("voted_users", []).append(interaction.user.id)
-
-        save_votes(votes_data)
-        await interaction.followup.send(f"Twój głos na **{option}** został zapisany. Dziękujemy!", ephemeral=True)
-
-    @discord.ui.button(label="14:00", style=discord.ButtonStyle.primary, custom_id="rp_poll_1400")
-    async def time_14(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_vote(interaction, "14:00")
-
-    @discord.ui.button(label="15:00", style=discord.ButtonStyle.primary, custom_id="rp_poll_1500")
-    async def time_15(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_vote(interaction, "15:00")
-
-    @discord.ui.button(label="16:00", style=discord.ButtonStyle.primary, custom_id="rp_poll_1600")
-    async def time_16(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_vote(interaction, "16:00")
-
-    @discord.ui.button(label="17:00", style=discord.ButtonStyle.primary, custom_id="rp_poll_1700")
-    async def time_17(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self.handle_vote(interaction, "17:00")
-
-
-# --- Zadania w tle dla ankiety RP ---
-POLL_CHANNEL_ID = 1437132763827540029
-TIMEZONE = ZoneInfo("Europe/Warsaw")
-POLL_SEND_TIME = time(22, 0, tzinfo=TIMEZONE)
-RESULTS_ANNOUNCE_TIME = time(13, 0, tzinfo=TIMEZONE)
-
-@tasks.loop(time=POLL_SEND_TIME)
-async def send_rp_poll(client: discord.Client):
-    print("INFO: Uruchamiam zadanie wysyłania ankiety RP.")
-    channel = client.get_channel(POLL_CHANNEL_ID)
-    if not channel:
-        print(f"BŁĄD: Nie znaleziono kanału ankiety o ID {POLL_CHANNEL_ID}.")
-        return
-
-    # Reset votes file for the new poll
-    save_votes({"votes": {}, "voted_users": []})
-
-    embed = discord.Embed(
-        title="⏰ Kiedy jutro gramy w Roleplay?",
-        description="Wybierz preferowaną godzinę rozpoczęcia jutrzejszej sesji RP. Głosowanie trwa do jutra do 13:00.",
-        color=discord.Color.blue()
-    )
-    embed.set_footer(text="Głosować można tylko raz.")
-    
-    view = RoleplayPollView()
-    await channel.send(embed=embed, view=view)
-    print(f"INFO: Ankieta RP została wysłana na kanał #{channel.name}.")
-
-@tasks.loop(time=RESULTS_ANNOUNCE_TIME)
-async def announce_rp_results(client: discord.Client):
-    print("INFO: Uruchamiam zadanie ogłaszania wyników ankiety RP.")
-    channel = client.get_channel(POLL_CHANNEL_ID)
-    if not channel:
-        print(f"BŁĄD: Nie znaleziono kanału ankiety o ID {POLL_CHANNEL_ID}.")
-        return
-
-    votes_data = load_votes()
-    votes = votes_data.get("votes", {})
-
-    if not votes:
-        embed = discord.Embed(
-            title="📊 Wyniki ankiety RP",
-            description="Niestety, nikt nie zagłosował w ankiecie dotyczącej jutrzejszego Roleplay.",
-            color=discord.Color.orange()
-        )
-        await channel.send(embed=embed)
-        # Clear votes even if no one voted, to be safe
-        save_votes({"votes": {}, "voted_users": []})
-        return
-
-    # Find the best time(s)
-    max_votes = 0
-    best_times = []
-    for time, count in sorted(votes.items()): # sorted to have deterministic output on ties
-        if count > max_votes:
-            max_votes = count
-            best_times = [time]
-        elif count == max_votes:
-            best_times.append(time)
-    
-    # Prepare result message
-    if len(best_times) == 1:
-        result_text = f"Najwięcej głosów ({max_votes}) zdobyła godzina **{best_times[0]}**! 🎉"
-    else:
-        result_text = f"Mamy remis! Godziny z największą liczbą głosów ({max_votes}) to: **{', '.join(best_times)}**. Administracja podejmie ostateczną decyzję."
-
-    embed = discord.Embed(
-        title="📊 Wyniki ankiety RP",
-        description=result_text,
-        color=discord.Color.green()
-    )
-
-    votes_summary = "\n".join([f"**{time}**: {count} głos(ów)" for time, count in sorted(votes.items())])
-    embed.add_field(name="Podsumowanie głosów", value=votes_summary if votes_summary else "Brak głosów.", inline=False)
-    
-    await channel.send(embed=embed)
-    print(f"INFO: Wyniki ankiety RP zostały ogłoszone na kanale #{channel.name}.")
-
-    # Clear votes after announcing
-    save_votes({"votes": {}, "voted_users": []})
-
-
 class MyClient(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
@@ -712,7 +623,7 @@ class MyClient(commands.Bot):
     async def setup_hooks(self) -> None:
         # Register the persistent view for the RP poll
         # This ensures the view works even after the bot restarts.
-        self.add_view(RoleplayPollView())
+        pass
 
     async def on_ready(self):
         await self.tree.sync()
@@ -768,9 +679,7 @@ class MyClient(commands.Bot):
 
         self.update_leaderboard.start()
         
-        # Start RP poll tasks
-        send_rp_poll.start(self)
-        announce_rp_results.start(self)
+        
 
 
         
@@ -1229,6 +1138,8 @@ LEVEL_UP_XP = 100
 XP_PER_MESSAGE = 1
 XP_PER_MINUTE_VOICE = 2
 LEADERBOARD_CHANNEL_ID = 1446533102108147814
+PATIENT_CARDS_CHANNEL_ID = 1439236245594177598
+EMPLOYEE_CARDS_CHANNEL_ID = 1437132774007111892
 
 def get_level_data(user_id: int):
     """Pobiera dane poziomów użytkownika, inicjalizując je, jeśli nie istnieją."""
@@ -1308,6 +1219,21 @@ def is_karta_pacjenta_authorized():
             
         # Role IDs that are authorized for /karta_pacjenta
         authorized_role_ids = [1437895172624224347] # User specified role ID
+        
+        # Check if the user has any of the authorized roles by ID
+        author_role_ids = [role.id for role in interaction.user.roles]
+        return any(role_id in author_role_ids for role_id in authorized_role_ids)
+    return app_commands.check(predicate)
+
+def is_karta_pracownika_authorized():
+    """Sprawdza, czy użytkownik ma jedną z autoryzowanych ról dla komendy karta_pracownika lub jest właścicielem bota."""
+    def predicate(interaction: discord.Interaction) -> bool:
+        owner_id = 877210657953566751 
+        if interaction.user.id == owner_id:
+            return True
+            
+        # Role IDs that are authorized for /karta_pracownika
+        authorized_role_ids = [1437076621092720724] # Placeholder for authorized role ID
         
         # Check if the user has any of the authorized roles by ID
         author_role_ids = [role.id for role in interaction.user.roles]
@@ -1908,6 +1834,134 @@ async def karta(interaction: discord.Interaction, uzytkownik: discord.Member):
 
 @karta_pacjenta.error
 async def karta_pacjenta_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.CheckFailure):
+        await interaction.response.send_message("❌ Nie masz uprawnień do użycia tej komendy.", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"Wystąpił nieoczekiwany błąd: {error}", ephemeral=True)
+
+
+@client.tree.command(name="karta-pracownika", description="[Admin] Tworzy lub aktualizuje kartę pracownika.")
+@is_karta_pracownika_authorized()
+@app_commands.describe(
+    imie_nazwisko="Imię i nazwisko pracownika.",
+    uzytkownik="Użytkownik Discord, do którego przypisana jest karta.",
+    wiek="Wiek pracownika.",
+    pochodzenie="Kraj lub region pochodzenia pracownika.",
+    stanowisko="Stanowisko pracownika.",
+    roblox_nick="Nazwa użytkownika Roblox (opcjonalnie).",
+    data_zatrudnienia="Data zatrudnienia (np. 'RRRR-MM-DD').",
+    discord_nick="Nick Discord pracownika.",
+    roblox_nick: str = None
+)
+async def karta_pracownika(
+    interaction: discord.Interaction,
+    imie_nazwisko: str,
+    uzytkownik: discord.Member,
+    wiek: app_commands.Range[int, 16, 100],
+    pochodzenie: str,
+    stanowisko: str,
+    data_zatrudnienia: str,
+    discord_nick: str,
+    roblox_nick: str = None
+):
+    """Tworzy nową kartę pracownika i zapisuje ją w pliku JSON."""
+    await interaction.response.defer(ephemeral=True)
+
+    target_channel = interaction.guild.get_channel(EMPLOYEE_CARDS_CHANNEL_ID)
+
+    if not target_channel:
+        await interaction.followup.send(
+            f"❌ Nie zdefiniowano `EMPLOYEE_CARDS_CHANNEL_ID` w `main.py` lub kanał nie istnieje.",
+            ephemeral=True
+        )
+        return
+
+    # Pobierz awatar Roblox, jeśli podano nick
+    roblox_avatar_url = None
+    if roblox_nick:
+        roblox_avatar_url = await get_roblox_avatar_url(roblox_nick)
+
+    employee_card_data = {
+        "imie_nazwisko": imie_nazwisko,
+        "wiek": wiek,
+        "pochodzenie": pochodzenie,
+        "stanowisko": stanowisko,
+        "roblox_nick": roblox_nick,
+        "roblox_avatar_url": roblox_avatar_url,
+        "data_zatrudnienia": data_zatrudnienia,
+        "discord_nick": discord_nick,
+        "discord_id": uzytkownik.id,
+        "author_id": interaction.user.id,
+        "last_updated": datetime.now().isoformat()
+    }
+
+    # Zapis danych
+    cards = load_employee_cards()
+    cards[str(uzytkownik.id)] = employee_card_data
+    save_employee_cards(cards)
+
+    # Tworzenie embeda
+    embed = discord.Embed(
+        title=f"Karta Pracownika",
+        description=f"**Pracownik:** {imie_nazwisko}",
+        color=discord.Color.from_rgb(255, 165, 0), # Orange
+        timestamp=datetime.now()
+    )
+    if roblox_avatar_url:
+        embed.set_thumbnail(url=roblox_avatar_url)
+    else:
+        embed.set_thumbnail(url=uzytkownik.display_avatar.url)
+    
+    embed.add_field(name="👤 Dane Podstawowe", value=f"**Wiek:** {wiek}\n**Pochodzenie:** {pochodzenie}", inline=True)
+    embed.add_field(name="💼 Zatrudnienie", value=f"**Stanowisko:** {stanowisko}\n**Data zatrudnienia:** {data_zatrudnienia}", inline=True)
+    embed.add_field(name="📧 Kontakt", value=f"**Nick Discord:** {discord_nick}", inline=False)
+    if roblox_nick:
+        embed.add_field(name="🎮 Roblox", value=f"**Nick:** {roblox_nick}", inline=False)
+    
+    embed.set_footer(text=f"Karta przypisana do: {uzytkownik.name} ({uzytkownik.id})\nAktualizacja przez: {interaction.user.name}")
+
+    await target_channel.send(embed=embed)
+    await interaction.followup.send(f"✅ Pomyślnie utworzono/zaktualizowano kartę pracownika dla {imie_nazwisko} ({uzytkownik.mention}).", ephemeral=True)
+
+@client.tree.command(name="pracownik", description="Wyświetla kartę pracownika.")
+@app_commands.describe(uzytkownik="Użytkownik, którego kartę chcesz zobaczyć.")
+async def pracownik(interaction: discord.Interaction, uzytkownik: discord.Member):
+    await interaction.response.defer(ephemeral=True)
+    cards = load_employee_cards()
+    user_id_str = str(uzytkownik.id)
+
+    if user_id_str not in cards:
+        await interaction.followup.send("❌ Ten użytkownik nie posiada karty pracownika.", ephemeral=True)
+        return
+
+    card_data = cards[user_id_str]
+
+    embed = discord.Embed(
+        title=f"Karta Pracownika",
+        description=f"**Pracownik:** {card_data['imie_nazwisko']}",
+        color=discord.Color.from_rgb(255, 165, 0), # Orange
+        timestamp=datetime.fromisoformat(card_data['last_updated'])
+    )
+    if card_data.get("roblox_avatar_url"):
+        embed.set_thumbnail(url=card_data["roblox_avatar_url"])
+    else:
+        embed.set_thumbnail(url=uzytkownik.display_avatar.url)
+    
+    embed.add_field(name="👤 Dane Podstawowe", value=f"**Wiek:** {card_data['wiek']}\n**Pochodzenie:** {card_data['pochodzenie']}", inline=True)
+    embed.add_field(name="💼 Zatrudnienie", value=f"**Stanowisko:** {card_data['stanowisko']}\n**Data zatrudnienia:** {card_data['data_zatrudnienia']}", inline=True)
+    embed.add_field(name="📧 Kontakt", value=f"**Nick Discord:** {card_data['discord_nick']}", inline=False)
+    if card_data.get("roblox_nick"):
+        embed.add_field(name="🎮 Roblox", value=f"**Nick:** {card_data['roblox_nick']}", inline=False)
+    
+    author = interaction.guild.get_member(card_data['author_id'])
+    author_name = author.name if author else "Nieznany"
+    
+    embed.set_footer(text=f"Karta przypisana do: {uzytkownik.name} ({uzytkownik.id})\nOstatnia aktualizacja przez: {author_name}")
+
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
+@karta_pracownika.error
+async def karta_pracownika_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CheckFailure):
         await interaction.response.send_message("❌ Nie masz uprawnień do użycia tej komendy.", ephemeral=True)
     else:

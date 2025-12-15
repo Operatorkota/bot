@@ -1850,8 +1850,7 @@ async def karta_pacjenta_error(interaction: discord.Interaction, error: app_comm
     stanowisko="Stanowisko pracownika.",
     roblox_nick="Nazwa użytkownika Roblox (opcjonalnie).",
     data_zatrudnienia="Data zatrudnienia (np. 'RRRR-MM-DD').",
-    discord_nick="Nick Discord pracownika.",
-    roblox_nick: str = None
+    discord_nick="Nick Discord pracownika."
 )
 async def karta_pracownika(
     interaction: discord.Interaction,

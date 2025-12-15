@@ -150,9 +150,10 @@ def parse_duration(duration_str: str) -> timedelta | None:
     except (ValueError, IndexError):
         return None
 
-async def get_roblox_avatar_url(username: str) -> str | None:
+async def get_roblox_avatar_url(username: str) -> tuple[str | None, str | None]:
     """
     Pobiera URL awatara użytkownika Roblox na podstawie jego nazwy użytkownika.
+    Zwraca krotkę (url, error_message).
     """
     try:
         # Krok 1: Pobierz User ID na podstawie nazwy użytkownika
@@ -161,9 +162,8 @@ async def get_roblox_avatar_url(username: str) -> str | None:
         user_id_response.raise_for_status() # Rzuć wyjątek dla błędów HTTP
         user_data = user_id_response.json()
 
-        if not user_data or "Id" not in user_data:
-            print(f"BŁĄD: Nie znaleziono użytkownika Roblox o nazwie '{username}'.")
-            return None
+        if "Id" not in user_data:
+            return None, f"Nie znaleziono użytkownika Roblox o nazwie '{username}'."
         
         roblox_user_id = user_data["Id"]
 
@@ -174,20 +174,16 @@ async def get_roblox_avatar_url(username: str) -> str | None:
         avatar_data = avatar_response.json()
 
         if avatar_data and avatar_data["data"]:
-            return avatar_data["data"][0]["imageUrl"]
+            return avatar_data["data"][0]["imageUrl"], None
         else:
-            print(f"BŁĄD: Nie udało się pobrać awatara dla użytkownika Roblox ID '{roblox_user_id}'.")
-            return None
+            return None, f"Nie udało się pobrać awatara dla użytkownika Roblox ID '{roblox_user_id}'."
 
-    except requests.exceptions.ConnectionError as e:
-        print(f"BŁĄD: Błąd połączenia z API Roblox: {e}")
-        return None
+    except requests.exceptions.ConnectionError:
+        return None, "Błąd połączenia z API Roblox. Sprawdź swoje połączenie internetowe i spróbuj ponownie."
     except requests.exceptions.RequestException as e:
-        print(f"BŁĄD: Błąd podczas komunikacji z API Roblox: {e}")
-        return None
+        return None, f"Błąd podczas komunikacji z API Roblox: {e}"
     except Exception as e:
-        print(f"BŁĄD: Nieoczekiwany błąd w get_roblox_avatar_url: {e}")
-        return None
+        return None, f"Nieoczekiwany błąd w get_roblox_avatar_url: {e}"
 
 # --- KOMENDY MODERACYJNE ---
 
@@ -1876,7 +1872,9 @@ async def karta_pracownika(
     # Pobierz awatar Roblox, jeśli podano nick
     roblox_avatar_url = None
     if roblox_nick:
-        roblox_avatar_url = await get_roblox_avatar_url(roblox_nick)
+        roblox_avatar_url, error_message = await get_roblox_avatar_url(roblox_nick)
+        if error_message:
+            await interaction.followup.send(f"⚠️ {error_message}", ephemeral=True)
 
     employee_card_data = {
         "imie_nazwisko": imie_nazwisko,

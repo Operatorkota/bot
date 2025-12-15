@@ -179,6 +179,9 @@ async def get_roblox_avatar_url(username: str) -> str | None:
             print(f"BŁĄD: Nie udało się pobrać awatara dla użytkownika Roblox ID '{roblox_user_id}'.")
             return None
 
+    except requests.exceptions.ConnectionError as e:
+        print(f"BŁĄD: Błąd połączenia z API Roblox: {e}")
+        return None
     except requests.exceptions.RequestException as e:
         print(f"BŁĄD: Błąd podczas komunikacji z API Roblox: {e}")
         return None
@@ -1139,7 +1142,7 @@ XP_PER_MESSAGE = 1
 XP_PER_MINUTE_VOICE = 2
 LEADERBOARD_CHANNEL_ID = 1446533102108147814
 PATIENT_CARDS_CHANNEL_ID = 1439236245594177598
-EMPLOYEE_CARDS_CHANNEL_ID = 1437132774007111892
+EMPLOYEE_CARDS_CHANNEL_ID = 1450115998429610137
 
 def get_level_data(user_id: int):
     """Pobiera dane poziomów użytkownika, inicjalizując je, jeśli nie istnieją."""
@@ -1745,16 +1748,11 @@ async def karta_pacjenta(
 ):
     """Tworzy nową kartę pacjenta i zapisuje ją w pliku JSON."""
     # Użyj ID kanału z config.py, jeśli istnieje
-    try:
-        target_channel_id = config.PATIENT_CARDS_CHANNEL_ID
-        target_channel = interaction.guild.get_channel(target_channel_id)
-    except AttributeError:
-        target_channel_id = None
-        target_channel = None
+    target_channel = interaction.guild.get_channel(PATIENT_CARDS_CHANNEL_ID)
 
-    if not target_channel:
+    if not target_channel or not isinstance(target_channel, discord.TextChannel):
         await interaction.response.send_message(
-            f"❌ Nie zdefiniowano `PATIENT_CARDS_CHANNEL_ID` w `config.py` lub kanał nie istnieje.",
+            f"❌ Nie zdefiniowano `PATIENT_CARDS_CHANNEL_ID` w `main.py` lub kanał nie jest kanałem tekstowym.",
             ephemeral=True
         )
         return
@@ -1868,9 +1866,9 @@ async def karta_pracownika(
 
     target_channel = interaction.guild.get_channel(EMPLOYEE_CARDS_CHANNEL_ID)
 
-    if not target_channel:
+    if not target_channel or not isinstance(target_channel, discord.TextChannel):
         await interaction.followup.send(
-            f"❌ Nie zdefiniowano `EMPLOYEE_CARDS_CHANNEL_ID` w `main.py` lub kanał nie istnieje.",
+            f"❌ Nie zdefiniowano `EMPLOYEE_CARDS_CHANNEL_ID` w `main.py` lub kanał nie jest kanałem tekstowym.",
             ephemeral=True
         )
         return
@@ -1962,9 +1960,9 @@ async def pracownik(interaction: discord.Interaction, uzytkownik: discord.Member
 @karta_pracownika.error
 async def karta_pracownika_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.CheckFailure):
-        await interaction.response.send_message("❌ Nie masz uprawnień do użycia tej komendy.", ephemeral=True)
+        await interaction.followup.send("❌ Nie masz uprawnień do użycia tej komendy.", ephemeral=True)
     else:
-        await interaction.response.send_message(f"Wystąpił nieoczekiwany błąd: {error}", ephemeral=True)
+        await interaction.followup.send(f"Wystąpił nieoczekiwany błąd: {error}", ephemeral=True)
 
 
 

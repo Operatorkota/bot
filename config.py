@@ -16,12 +16,14 @@ FINANCIAL_PENALTIES = {
 # --- Konfiguracja ID kanałów ---
 # Wklej tutaj ID kanału, na który mają być wysyłane wiadomości o karach z komendy /sentenced
 SENTENCED_CHANNEL_ID = 1437132768407453848
+
 # Wklej tutaj ID kanałów informacyjnych, które bot ma aktualizować
 INFO_CHANNEL_IDS = {
     "regulamin": 1437132761612812421,
     "protokół": 1437132776699859128,
     "protokół_1": 1437132776699859128,
     "protokół_2": 1437132776699859128,
+    # Dodaj inne kanały informacyjne, jeśli są potrzebne
 }
 
 # Wklej tutaj ID kanału, na który mają być wysyłane ogłoszenia RP

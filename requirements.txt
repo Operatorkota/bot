@@ -3,3 +3,4 @@ pydantic
 discord.py
 aiohttp
 aiohttp-cors
+flask

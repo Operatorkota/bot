@@ -1,0 +1,158 @@
+Twoim zadaniem jest zaprojektowanie i zaimplementowanie kompletnego systemu służby personelu oraz rozliczeń wypłat, działającego bez panelu webowego, wyłącznie w Discordzie, z zapisem danych lokalnie.
+
+Wymagania ogólne:
+
+Python
+
+discord.py (slash commands)
+
+brak Flask / panelu www
+
+dane zapisywane lokalnie (JSON lub SQLite – wybierz rozsądnie)
+
+kod stabilny, odporny na restart bota
+
+czytelne embedy
+
+FUNKCJONALNOŚĆ:
+1. System służby
+
+Komendy:
+
+/on-duty
+
+/off-duty
+
+Liczenie czasu tylko gdy użytkownik jest na wyznaczonym kanale voice
+
+Pauza liczenia po wyjściu z voice / AFK
+
+Auto /off-duty po rozłączeniu lub opuszczeniu serwera
+
+Zapamiętywanie aktywnej sesji po restarcie bota
+
+2. Stanowiska i stawki
+
+Różne stawki godzinowe zależne od roli Discord:
+
+stażysta: 120 zł/h
+
+lekarz: 250 zł/h
+
+ordynator: 320 zł/h
+
+dyrektor: 400 zł/h
+
+Jedno źródło prawdy dla stawek
+
+3. Aktywność na służbie
+
+Zliczanie:
+
+wystawionych kar (/sentenced)
+
+ostrzeżeń (/warn)
+
+Aktywność przypisana tylko jeśli moderator jest na służbie
+
+4. Premie i potrącenia
+
+Premie:
+
+event RP
+
+brak ostrzeżeń w okresie
+
+Potrącenia:
+
+ostrzeżenia
+
+Premie i kary mogą być kwotowe lub procentowe
+
+5. Wymagania do wypłaty
+
+minimalny czas służby
+
+minimalna liczba interwencji
+
+brak poważnych ostrzeżeń
+
+jeśli warunki niespełnione → wypłata = 0 (czas zostaje w statystykach)
+
+6. Rozliczenia automatyczne
+
+Okres rozliczeniowy: co 5 dni
+
+Automatyczny task generujący raport
+
+Embed z listą:
+
+nick
+
+stanowisko
+
+czas służby
+
+stawka
+
+podstawa
+
+premie
+
+potrącenia
+
+kwota końcowa
+
+Reset tylko danych okresowych (nie historii)
+
+7. Dwustopniowe zatwierdzanie wypłat
+
+Raport jako „projekt wypłat”
+
+Zatwierdzenie przez 2 administratorów
+
+Dopiero po zatwierdzeniu reset okresu
+
+8. Rankingi i wyróżnienia
+
+Najwięcej godzin
+
+Najwięcej interwencji
+
+Najdłuższa sesja
+
+9. Urlopy
+
+/urlop start
+
+/urlop end
+
+Urlop wyłącza wymagania aktywności
+
+10. Audyt i bezpieczeństwo
+
+Historia wypłat (okres, użytkownik, kwota, zatwierdzający)
+
+Flagi podejrzanej aktywności (bardzo długie sesje, brak interwencji)
+
+WYMAGANIA TECHNICZNE:
+
+Stałe (stawki, limity) w jednym miejscu
+
+Zapis atomowy danych
+
+Czytelna struktura plików
+
+Komentarze tylko tam, gdzie konieczne
+
+Kod gotowy do uruchomienia
+
+FORMAT ODPOWIEDZI:
+
+Najpierw krótki opis architektury
+
+Następnie pełny kod
+
+Bez pseudokodu
+
+Bez pomijania kluczowych elementów

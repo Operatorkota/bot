@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .chart-container {
+            width: 80%;
+            margin: 40px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Bot Dashboard</h1>
+
+    <div class="chart-container">
+        <h2>Poziomy - Top 10</h2>
+        <canvas id="levelsChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2>Ekonomia - Top 10</h2>
+        <canvas id="economyChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2>Rodzaje Kar</h2>
+        <canvas id="sentencesChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2>Poziomy Ostrzeżeń</h2>
+        <canvas id="warningsChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <h2>Liczba Kart</h2>
+        <canvas id="cardsChart"></canvas>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/data')
+                .then(response => response.json())
+                .then(data => {
+                    // Wykres Poziomów
+                    const levelsCtx = document.getElementById('levelsChart').getContext('2d');
+                    new Chart(levelsCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(data.levels),
+                            datasets: [{
+                                label: 'XP',
+                                data: Object.values(data.levels).map(u => u.xp),
+                                backgroundColor: 'rgba(54, 162, 235, 0.6)'
+                            }]
+                        }
+                    });
+
+                    // Wykres Ekonomii
+                    const economyCtx = document.getElementById('economyChart').getContext('2d');
+                    new Chart(economyCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(data.economy),
+                            datasets: [{
+                                label: 'Stan konta',
+                                data: Object.values(data.economy).map(u => u.balance),
+                                backgroundColor: 'rgba(75, 192, 192, 0.6)'
+                            }]
+                        }
+                    });
+
+                    // Wykres Kar
+                    const sentencesCtx = document.getElementById('sentencesChart').getContext('2d');
+                    new Chart(sentencesCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: Object.keys(data.sentences),
+                            datasets: [{
+                                data: Object.values(data.sentences),
+                                backgroundColor: [
+                                    'rgba(255, 99, 132, 0.6)',
+                                    'rgba(255, 159, 64, 0.6)',
+                                    'rgba(255, 205, 86, 0.6)',
+                                    'rgba(75, 192, 192, 0.6)',
+                                ]
+                            }]
+                        }
+                    });
+                    
+                    // Wykres Ostrzeżeń
+                    const warningsCtx = document.getElementById('warningsChart').getContext('2d');
+                    new Chart(warningsCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: Object.keys(data.warnings),
+                            datasets: [{
+                                data: Object.values(data.warnings),
+                                backgroundColor: [
+                                    'rgba(201, 203, 207, 0.6)',
+                                    'rgba(0, 255, 0, 0.6)',
+                                    'rgba(255, 255, 0, 0.6)',
+                                    'rgba(255, 0, 0, 0.6)',
+                                    'rgba(0, 0, 0, 0.6)',
+                                ]
+                            }]
+                        }
+                    });
+
+                    // Wykres Liczby Kart
+                    const cardsCtx = document.getElementById('cardsChart').getContext('2d');
+                    new Chart(cardsCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(data.cards),
+                            datasets: [{
+                                label: 'Liczba',
+                                data: Object.values(data.cards),
+                                backgroundColor: [
+                                    'rgba(153, 102, 255, 0.6)',
+                                    'rgba(255, 159, 64, 0.6)'
+                                ]
+                            }]
+                        }
+                    });
+                });
+        });
+    </script>
+</body>
+</html>

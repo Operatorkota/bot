@@ -11,7 +11,6 @@ import random
 import unicodedata
 import re
 from itertools import cycle
-import requests # New import
 import google.generativeai as genai
 import asyncio # New import
 
@@ -149,41 +148,6 @@ def parse_duration(duration_str: str) -> timedelta | None:
             return None # Invalid unit
     except (ValueError, IndexError):
         return None
-
-async def get_roblox_avatar_url(username: str) -> tuple[str | None, str | None]:
-    """
-    Pobiera URL awatara użytkownika Roblox na podstawie jego nazwy użytkownika.
-    Zwraca krotkę (url, error_message).
-    """
-    try:
-        # Krok 1: Pobierz User ID na podstawie nazwy użytkownika
-        user_id_url = f"https://api.roblox.com/users/get-by-username?username={username}"
-        user_id_response = requests.get(user_id_url)
-        user_id_response.raise_for_status() # Rzuć wyjątek dla błędów HTTP
-        user_data = user_id_response.json()
-
-        if "Id" not in user_data:
-            return None, f"Nie znaleziono użytkownika Roblox o nazwie '{username}'."
-        
-        roblox_user_id = user_data["Id"]
-
-        # Krok 2: Pobierz URL awatara na podstawie User ID
-        avatar_url = f"https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds={roblox_user_id}&size=420x420&format=Png&isCircular=false"
-        avatar_response = requests.get(avatar_url)
-        avatar_response.raise_for_status() # Rzuć wyjątek dla błędów HTTP
-        avatar_data = avatar_response.json()
-
-        if avatar_data and avatar_data["data"]:
-            return avatar_data["data"][0]["imageUrl"], None
-        else:
-            return None, f"Nie udało się pobrać awatara dla użytkownika Roblox ID '{roblox_user_id}'."
-
-    except requests.exceptions.ConnectionError:
-        return None, "Błąd połączenia z API Roblox. Sprawdź swoje połączenie internetowe i spróbuj ponownie."
-    except requests.exceptions.RequestException as e:
-        return None, f"Błąd podczas komunikacji z API Roblox: {e}"
-    except Exception as e:
-        return None, f"Nieoczekiwany błąd w get_roblox_avatar_url: {e}"
 
 # --- KOMENDY MODERACYJNE ---
 
@@ -1842,9 +1806,9 @@ async def karta_pacjenta_error(interaction: discord.Interaction, error: app_comm
     wiek="Wiek pracownika.",
     pochodzenie="Kraj lub region pochodzenia pracownika.",
     stanowisko="Stanowisko pracownika.",
-    roblox_nick="Nazwa użytkownika Roblox (opcjonalnie).",
     data_zatrudnienia="Data zatrudnienia (np. 'RRRR-MM-DD').",
-    discord_nick="Nick Discord pracownika."
+    discord_nick="Nick Discord pracownika.",
+    zdjecie_postaci="Zdjęcie postaci pracownika."
 )
 async def karta_pracownika(
     interaction: discord.Interaction,
@@ -1855,7 +1819,7 @@ async def karta_pracownika(
     stanowisko: str,
     data_zatrudnienia: str,
     discord_nick: str,
-    roblox_nick: str = None
+    zdjecie_postaci: discord.Attachment
 ):
     """Tworzy nową kartę pracownika i zapisuje ją w pliku JSON."""
     await interaction.response.defer(ephemeral=True)
@@ -1869,22 +1833,14 @@ async def karta_pracownika(
         )
         return
 
-    # Pobierz awatar Roblox, jeśli podano nick
-    roblox_avatar_url = None
-    if roblox_nick:
-        roblox_avatar_url, error_message = await get_roblox_avatar_url(roblox_nick)
-        if error_message:
-            await interaction.followup.send(f"⚠️ {error_message}", ephemeral=True)
-
     employee_card_data = {
         "imie_nazwisko": imie_nazwisko,
         "wiek": wiek,
         "pochodzenie": pochodzenie,
         "stanowisko": stanowisko,
-        "roblox_nick": roblox_nick,
-        "roblox_avatar_url": roblox_avatar_url,
         "data_zatrudnienia": data_zatrudnienia,
         "discord_nick": discord_nick,
+        "zdjecie_url": zdjecie_postaci.url,
         "discord_id": uzytkownik.id,
         "author_id": interaction.user.id,
         "last_updated": datetime.now().isoformat()
@@ -1902,16 +1858,11 @@ async def karta_pracownika(
         color=discord.Color.from_rgb(255, 165, 0), # Orange
         timestamp=datetime.now()
     )
-    if roblox_avatar_url:
-        embed.set_thumbnail(url=roblox_avatar_url)
-    else:
-        embed.set_thumbnail(url=uzytkownik.display_avatar.url)
+    embed.set_thumbnail(url=zdjecie_postaci.url)
     
     embed.add_field(name="👤 Dane Podstawowe", value=f"**Wiek:** {wiek}\n**Pochodzenie:** {pochodzenie}", inline=True)
     embed.add_field(name="💼 Zatrudnienie", value=f"**Stanowisko:** {stanowisko}\n**Data zatrudnienia:** {data_zatrudnienia}", inline=True)
     embed.add_field(name="📧 Kontakt", value=f"**Nick Discord:** {discord_nick}", inline=False)
-    if roblox_nick:
-        embed.add_field(name="🎮 Roblox", value=f"**Nick:** {roblox_nick}", inline=False)
     
     embed.set_footer(text=f"Karta przypisana do: {uzytkownik.name} ({uzytkownik.id})\nAktualizacja przez: {interaction.user.name}")
 
@@ -1937,16 +1888,14 @@ async def pracownik(interaction: discord.Interaction, uzytkownik: discord.Member
         color=discord.Color.from_rgb(255, 165, 0), # Orange
         timestamp=datetime.fromisoformat(card_data['last_updated'])
     )
-    if card_data.get("roblox_avatar_url"):
-        embed.set_thumbnail(url=card_data["roblox_avatar_url"])
+    if card_data.get("zdjecie_url"):
+        embed.set_thumbnail(url=card_data["zdjecie_url"])
     else:
         embed.set_thumbnail(url=uzytkownik.display_avatar.url)
     
     embed.add_field(name="👤 Dane Podstawowe", value=f"**Wiek:** {card_data['wiek']}\n**Pochodzenie:** {card_data['pochodzenie']}", inline=True)
     embed.add_field(name="💼 Zatrudnienie", value=f"**Stanowisko:** {card_data['stanowisko']}\n**Data zatrudnienia:** {card_data['data_zatrudnienia']}", inline=True)
     embed.add_field(name="📧 Kontakt", value=f"**Nick Discord:** {card_data['discord_nick']}", inline=False)
-    if card_data.get("roblox_nick"):
-        embed.add_field(name="🎮 Roblox", value=f"**Nick:** {card_data['roblox_nick']}", inline=False)
     
     author = interaction.guild.get_member(card_data['author_id'])
     author_name = author.name if author else "Nieznany"
